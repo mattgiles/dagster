@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 from typing import Any, Callable, Optional
 
 from dagster import (
@@ -10,6 +10,7 @@ from dagster import (
     TimeWindowPartitionsDefinition,
     multi_asset,
 )
+from dagster._core.definitions.asset_dep import CoercibleToAssetDep
 from dagster._utils.warnings import suppress_dagster_warnings
 
 from dagster_dbt.asset_utils import (
@@ -40,6 +41,7 @@ def dbt_assets(
     project: Optional[DbtProject] = None,
     retry_policy: Optional[RetryPolicy] = None,
     pool: Optional[str] = None,
+    deps: Optional[Iterable[CoercibleToAssetDep]] = None,
 ) -> Callable[[Callable[..., Any]], AssetsDefinition]:
     """Create a definition for how to compute a set of dbt resources, described by a manifest.json.
     When invoking dbt commands using :py:class:`~dagster_dbt.DbtCliResource`'s
@@ -79,6 +81,10 @@ def dbt_assets(
         retry_policy (Optional[RetryPolicy]): The retry policy for the op that computes the asset.
         pool (Optional[str]): A string that identifies the concurrency pool that governs the dbt
             assets' execution.
+        deps (Optional[Sequence[Union[AssetsDefinition, SourceAsset, AssetKey, str]]]):
+            The assets that are upstream dependencies, but do not correspond to a parameter of the
+            decorated function. If the AssetsDefinition for a multi_asset is provided, dependencies on
+            all assets created by the multi_asset will be created.
 
     Examples:
         Running ``dbt build`` for a dbt project:
@@ -357,6 +363,7 @@ def dbt_assets(
         specs=specs,
         check_specs=check_specs,
         can_subset=True,
+        deps=deps,
         required_resource_keys=required_resource_keys,
         partitions_def=partitions_def,
         op_tags=resolved_op_tags,
